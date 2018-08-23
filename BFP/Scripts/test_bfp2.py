@@ -22,6 +22,8 @@ imgplot = plt.imshow(img[0])
 plt.show()
 
 with tf.Session(''):
-	res = bfp_out_module.bfp_out(img).eval()
-	imgplot = plt.imshow(res[0])
+	print(img)
+	res1 = bfp_out_module.bfp_out(img, ShDepth=3, MWidth=1, EWidth=8).eval()
+	imgplot = plt.imshow(res1[0])
 	plt.show()
+	print(res1[0])

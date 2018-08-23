@@ -13,7 +13,8 @@ slim = tf.contrib.slim
 ##############
 # Defining the Model
 ##############
-batch_size = 50000
+batch_size = 500
+epochs = 1
 height, width = 224, 224
 num_channels = 3
 path_to_ckpt = "/mnt/d/Data/"
@@ -69,7 +70,6 @@ if model == 'InceptionV1':
 ##############
 # Performing Inference
 ##############
-epochs = 100
 batch_s = int(batch_size/epochs)
 predicted_classes = np.empty([batch_size, num_clss], int)
 for i in range(epochs):
