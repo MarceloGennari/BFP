@@ -28,7 +28,7 @@ class BfpOutOp : public OpKernel{
 			// Checking if inputs are right
 			OP_REQUIRES(context, SharedDepth>=1, errors::InvalidArgument("Need Shared Depth bigger than 0"));
 			OP_REQUIRES(context, m_w >=0, errors::InvalidArgument("Need Mantissa Width bigger or equal to 0"));
-			OP_REQUIRES(context, e_w >=1, errors::InvalidArgument("Need Exponent Width bigger than 0"));	
+			OP_REQUIRES(context, e_w >=0, errors::InvalidArgument("Need Exponent Width bigger or equal to 0"));	
 		}
 
 		void Compute(OpKernelContext* context) override {
@@ -58,40 +58,11 @@ class BfpOutOp : public OpKernel{
 			auto input = input_tensor.shaped<float, 4>({batch, height, width, depth});
 			auto output = output_tensor->shaped<float, 4> ({batch, height, width, depth});			
 			
-
-			// NAIVE APPROACH TO QUANTIZE VALUES IN THE BLOCKS OF SHARED DEPTH 
-			for (int i = 0; i<batch; i++){
-				for( int h =0; h<height; h++){
-					for(int w = 0; w< width; w++){
-						for(int b = 0; b < blocks; b++){
-							// This iterates through each block
-							float highestValue;
-							for(int d = b; d <(b+1)*SharedDepth; d++){
-								if(d==b) highestValue = input(i,h,w,d); // Initialize highest value
-								// This iterates through the values in each block
-								if(input(i,h,w,d)>highestValue){
-									highestValue = input(i,h,w,d);
-								}
-							}
-							for(int d = b; d<(b+1)*SharedDepth; d++){
-								output(i,h,w,d) = Quantize2(input(i,h,w,d));
-							}
-						}
-					
-						// This iterates through the last values which could not fit in one block
-						float highestValue;
-						for(int d = blocks*SharedDepth; d<depth; d++){
-							if(d==blocks*SharedDepth) highestValue = input(i,h,w,d); // Initialize 
-							if(input(i,h,w,d) > highestValue){
-								highestValue = input(i,h,w,d);
-							}
-						}
-						for(int d = blocks*SharedDepth; d<depth; d++){
-							output(i,h,w,d) = Quantize2(input(i,h,w,d));
-						}
-					}
-				}
-			}
+			auto input_flat = input_tensor.flat<float>();
+			auto output_flat = output_tensor->flat<float>();	
+			for ( int k = 0; k<input.size(); k++){
+				output_flat(k) = Quantize3(input_flat(k));
+			}	
 		
 		}
 		
@@ -99,9 +70,9 @@ class BfpOutOp : public OpKernel{
 	private:
 		int SharedDepth, e_w, m_w;
 	
-		float Quantize1(float highestValue){
+		float Quantize1(float value){
 			// This quantization method simply sets everything the same for debugging
-			return highestValue;
+			return value;
 		}
 
 		float Quantize2(float value){
@@ -126,6 +97,9 @@ class BfpOutOp : public OpKernel{
 				neg = true;
 				value*=-1.0f;
 			}
+			if(value == 0.0f){
+				return value;
+			}
 			int exp = floor(log2f(value));
 			value /= pow(2, exp);
 			// Now value should be 1.b0b1b2b3...
@@ -137,20 +111,53 @@ class BfpOutOp : public OpKernel{
 			
 			return value;
 		}
+
+
+		float Quantize3(float value){
+			/***
+			* Simple Implementation of Quantization:
+			* For this quantization, it is assumed that values are in FP32
+			* They will be transformed to 1-sign, variable exponent, variable mantissa
+			* This strategy adopts the truncation of the exponent
+			* So given the exponent width e_w, the exponent will have to be between:
+			* 			1-pow(2,e_w-1) <= exponent <= pow(2,e_w-1)
+			* Any values that are above or below those extremes will be truncated to the max/min value
+			* The proposed method works as follows (since in c++ we can't really do bitwise operation)
+			* 	1. if value is less than zero, multiply by -1.0f to get the absolute value
+			*	2. take the log2 of the absolute value and floor it - this is the value of the exponent
+			*	3. divide the absolute value by the value of 2^exponent, to get the value of 1.b0b1b2...
+			*	4. multiply by 2^mantissa_bits to get 1b0b1b2b3.b4b5b6b7 etc
+			*	5. floor the value to get 1b0b1b2b3.0000 etc
+			*	6. divide by 2^mantissa_bits to get 1.b0b1b2b3
+			*	7. check if exponent is between extreme values
+			*	8. if it isn't, truncate it to the maximum value
+			*	9. multiply by the value 2^exponent
+			* 	10. if it was less then zero, multiply by -1.0f to get the right value
+			*	11. return the right value
+			***/
+			bool neg = false;
+			if(value<0.0f){
+				neg = true;
+				value*=-1.0f;
+			}
+			if(value == 0.0f){
+				return value;
+			}
+			int exp = floor(log2f(value));
+			value /= pow(2, exp);
+			// Now value should be 1.b0b1b2b3...
+			value*=pow(2,m_w);
+			value = floor(value);
+			value  /= pow(2, m_w);
+			// Now check if exp is in desired range and truncate it if not
+			int tmp = pow(2, e_w-1);
+			if(exp <1-tmp)	exp = 1-tmp;
+			if(exp>tmp)	exp = tmp;
+			value *=pow(2, exp);
+			if(neg) value*=-1.0f;
+			
+			return value;
+		}
 };
 
 REGISTER_KERNEL_BUILDER(Name("BfpOut").Device(DEVICE_CPU), BfpOutOp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-

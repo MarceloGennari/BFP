@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+import argparse
 from PIL import Image
 from nets import inception
 from MUtils.sysnet_labels import Label
@@ -11,10 +12,29 @@ from MUtils.img_proc import ImgProc
 slim = tf.contrib.slim
 
 ##############
+# Creating Parser
+##############
+parser = argparse.ArgumentParser(description='Setting variables')
+parser.add_argument("-d", "--debug", help="Prints information to help debugging", action="store_true")
+parser.add_argument("-m", "--mantissa", help="Specifies the width of the mantissa", type=int, default=23)
+parser.add_argument("-x", "--exponent", help="Specifies the width of the exponent", type=int, default=8)
+parser.add_argument("-s", "--sharedexp", help="Specifies the depth of shared exponent", type=int, default=16)
+parser.add_argument("-b", "--batch", help="Specifies the value of the batch" , type=int, default=1)
+parser.add_argument("-e", "--epoch", help="Specifies the number of epochs", type=int, default=1)
+parser.add_argument("-o", "--original", help="Specifies whether to use original or altered network", action="store_true")
+args = parser.parse_args()
+
+debug = args.debug
+alter = not args.original
+batch_size = args.batch
+epochs = args.epoch
+m_w = args.mantissa
+e_w = args.exponent
+s_w = args.sharedexp
+
+##############
 # Defining the Model
 ##############
-batch_size = 500
-epochs = 1
 height, width = 224, 224
 num_channels = 3
 path_to_ckpt = "/mnt/d/Data/"
@@ -35,7 +55,7 @@ elif model == 'ResNetV150':
 
 X = tf.placeholder(tf.float32, shape=[None, height, width, num_channels])
 with slim.arg_scope(inception.inception_v1_arg_scope()):
-	logits, end_points = inception.inception_v1(X, num_classes=num_clss, is_training=False)
+	logits, end_points = inception.inception_v1(X, num_classes=num_clss, is_training=False, m_w=m_w, e_w=e_w, s_w=s_w, alter=alter, debug=debug)
 
 predictions = end_points["Predictions"]	# The end model is stored here
 variables_to_restore = slim.get_variables_to_restore()
@@ -86,7 +106,7 @@ right1 = 0
 false1 = 0
 right5 = 0
 false5 = 0
-pr = False
+pr = debug
 for i in range(predicted_classes.shape[0]):
 	if pr:
 		print("For image " + str(i+1) + " the top five are: ")
@@ -100,6 +120,7 @@ for i in range(predicted_classes.shape[0]):
 		right5+=1
 	else:
 		false5+=1	
-		 
+print("Mantissa Width: " + str(args.mantissa))		 
+print("Exponent Width: " + str(args.exponent))
 print("Top 1: "+ str(right1) + " correct and " + str(false1) + " false")
-print("Top 5: "+ str(right5) + " correct and " + str(false5) + " false")  
+print("Top 5: "+ str(right5) + " correct and " + str(false5) + " false")
