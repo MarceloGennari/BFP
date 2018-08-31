@@ -75,6 +75,8 @@ class InfEngine:
 			self.config["weight"]["s_w"]         = w_s_w
 		if(w_m_w is not None or w_e_w is not None or w_s_w is not None):
 			self.path_to_ckpt = self.config["to_ckpt"] + self.config["Model"][self.model]["to_quant_w"] + "model" + str(self.config["weight"]["m_w"]) + str(self.config["weight"]["e_w"]) +".ckpt" 
+			tf.reset_default_graph()
+			self.__set_up_inception()
 	
 	def quant_weights(self, path_to_dir):
 		tf.reset_default_graph()

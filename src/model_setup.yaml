@@ -3,8 +3,8 @@
 ####################
 quantize: true
 quantize_weight: false
-mantissa_width: 4
-exponent_width: 2
+mantissa_width: 10
+exponent_width: 8
 shared_exponent_width: 16
 weight:
   m_w: 4
@@ -21,7 +21,7 @@ image:
 debug: false
 debug_layer: false
 number_images: 10
-batch_size: 10
+batch_size: 500
 epochs: 2
 model: "InceptionV1"
 
