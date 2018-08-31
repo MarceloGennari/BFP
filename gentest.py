@@ -7,6 +7,7 @@ import tensorflow as tf
 import argparse
 from PIL import Image
 from nets import inception
+from nets import vgg
 from MUtils.sysnet_labels import Label
 from MUtils.img_proc import ImgProc
 slim = tf.contrib.slim

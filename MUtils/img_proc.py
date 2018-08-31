@@ -24,33 +24,9 @@ class ImgProc:
 				print("Image number " + str(self.index) + " doesn't have a colour channel")
 			self.image = np.array(self.image).transpose()
 			self.image = np.array([self.image]*3).transpose()
-		'''	
-		# Dealing with images whose height is not big enough
-		if(self.image.shape[0] < 224):
-			diff = 224-self.image.shape[0]
-			padd = int(np.ceil(diff/2))
-			if(self.pr):
-				print("Image number " + str(self.index) + " has height less than 224")
-			a = np.full((padd, self.image.shape[1], self.image.shape[2]), 0)
-			self.image = np.concatenate((a, self.image, a), axis=0)
-
-		# Dealing with images whose width is not big enough
-		if(self.image.shape[1] < 224):
-			diff = 224 - self.image.shape[1]
-			padd = int(np.ceil(diff/2))
-			if(self.pr):
-				print("Image number " + str(self.index) + " has width less than 224")
-			a = np.full((self.image.shape[0], padd, self.image.shape[2]), 0)
-			self.image = np.concatenate((a, self.image, a), axis = 1)
-		'''
+		
 		assert self.image.shape[2] == 3, "not 3 channels for image " + str(self.index)
-		#assert self.image.shape[0] >=224, "height is less than 224 for image " +str(self.index)
-		#assert self.image.shape[1] >=224, "width is less than 224 for image " + str(self.index)
-		'''
-		mid_h = int(self.image.shape[0]/2)
-		mid_w = int(self.image.shape[1]/2)
-		self.image = self.image[mid_h -112:mid_h+112, mid_w-112:mid_w+112]
-		'''
+	
 	def preprocess(self, arch='inception', pr = False, add_batch = True):
 		self.check_colour_channel()	
 		proc = pp.get_preprocessing(arch)

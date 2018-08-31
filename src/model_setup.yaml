@@ -1,0 +1,57 @@
+####################
+# Quantization     #
+####################
+quantize: true
+quantize_weight: false
+mantissa_width: 4
+exponent_width: 2
+shared_exponent_width: 16
+weight:
+  m_w: 4
+  e_w: 4
+  s_w: 16
+
+####################
+# Configuration    #
+####################
+image:
+  height: 224
+  width: 224
+  num_channels: 3
+debug: false
+debug_layer: false
+number_images: 10
+batch_size: 10
+epochs: 2
+model: "InceptionV1"
+
+####################
+# Directories      #
+####################
+to_ckpt: "/mnt/d/Data/"
+data_dir: "/mnt/d/Data/ILSVRC2012/ILSVRC2012_img_val/"
+gr_truth_dir: "/mnt/d/Data/ILSVRC2012/"
+lab_map: "/mnt/d/Data/"
+
+####################
+# MODEL            #
+####################
+Model:
+  InceptionV1:
+    num_clss: 1001
+    ckpt_path: "Inception/inception_v1.ckpt"
+    to_quant_w: "Inception/checkpoints/"
+    map_path: "Inception/MappingSysnet.txt"
+    preprocess: "inception_v1"
+  VGG16:
+    num_clss: 1000
+    ckpt_path: "VGG/vgg_16.ckpt"
+    preprocess: "vgg_16"
+  VGG19:
+    num_clss: 1000
+    ckpt_path: "VGG/vgg_19.ckpt"
+    preprocess: "vgg_19"
+  ResNetV150:
+    num_clss: 1000
+    ckpt_path: "ResNet/resnet_v1_50.ckpt"
+    preprocess: "resnet_v1_50"
