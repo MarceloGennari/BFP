@@ -5,11 +5,12 @@ void Quantizer::set(int sh, int e_w, int m_w){
 	this->SharedDepth = sh;
 	this->e_w = e_w;
 	this->m_w = m_w;
+	this->nb_crop = 0;
 	MAX_EXP = (1<<(e_w-1));
 	MIN_EXP = (-1*(1<<(e_w-1)))+1;
 }
 
-Quantizer::Quantizer(){}
+Quantizer::Quantizer(): nb_crop(0){}
 
 Quantizer::Quantizer(int sh, int e_w, int m_w) : SharedDepth(sh), e_w(e_w), m_w(m_w){
 	/***
@@ -20,6 +21,11 @@ Quantizer::Quantizer(int sh, int e_w, int m_w) : SharedDepth(sh), e_w(e_w), m_w(
 	***/
 	MAX_EXP = (1<<(e_w-1));
 	MIN_EXP = (-1*(1<<(e_w-1)))+1;
+	this->nb_crop=0;
+}
+
+int Quantizer::getNbCrop(){
+	return this->nb_crop;
 }
 
 float Quantizer::to_var_fp_arith(float v){
@@ -92,11 +98,13 @@ float Quantizer::to_var_fp(float v){
 		_mant = BF::MANT & BF::MASKM[m_w];
 		i = _mant + _sign + _exp;
 		std::memcpy(&v, &i, sizeof(i));
+		nb_crop++;
 		return v;
 	}
 
 	if(_exp < MIN_EXP){
 		_exp = MIN_EXP;
+		nb_crop++;
 	}
 
 	_exp = _exp + 127;

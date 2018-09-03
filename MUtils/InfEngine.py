@@ -89,15 +89,91 @@ class InfEngine:
 				self.variables_to_restore[i].assign(bfp_out_module.bfp_out(self.variables_to_restore[i], ShDepth = self.config["weight"]["s_w"], MWidth=self.config["weight"]["m_w"], EWidth=self.config["weight"]["e_w"])).eval()
 			save_path = saver.save(sess, path_to_dir+"model"+str(self.config["weight"]["m_w"])+str(self.config["weight"]["e_w"]) +".ckpt")
 			print("Model saved in path: %s" %save_path) 
+
+	def scale_weights(self, fac, save=False):
+		# This will scale all of the weights to a specified factor and save it
+		# This is not as simple as multiplying everything by the weights
+		# The downstream biases will have to be multiplied by the upstream weights
+		# For example, let the weights multiplies be w1, w2, w3, w4, w5
+		# Then, the biases multiplies need to be w1, w1w2, w1w2w3, w1w2w3w4, w1w2w3w4w5, etc...
+		# In order to test the system, lets make w2,w3,w4... = 1
+		# So that we have, w1, 1,1,1,1,1 for the weights and w1, w1, w1 ,w1 ,w1 for the biases
+		saver = tf.train.Saver()
+		with tf.Session() as sess:
+			self.init_assign_fn(sess)
+			w_n =0
+			for i in range(len(self.variables_to_restore)):
+				if (self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="weights"):
+					if ( w_n <= 2):
+						w_n +=1
+						fst = tf.scalar_mul(fac, self.variables_to_restore[i])
+						self.variables_to_restore[i].assign(fst).eval()
+					continue
+
+				if(self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance"):
+					continue				
 	
-	def test_weights(self, path_to_dir):
+				### NOTICE THE ** OPERATOR WHICH IS A POWER. THIS IS BECAUSE IT NEEDS TO BE MULTIPLIED BY THE UPSTREAM SCALINGS
+				fst = tf.scalar_mul(fac**(w_n), self.variables_to_restore[i])
+			
+			#	if self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance":
+			#		fst = tf.scalar_mul(fac, fst)
+				self.variables_to_restore[i].assign(fst).eval()
+			if(save):
+				save_path = saver.save(sess, "/mnt/d/Data/Inception/Scaled/scaled_weight.ckpt")
+
+	def print_weights(self):
+		count = 0
+		values = np.array([])
+		with tf.Session() as sess:
+			self.init_assign_fn(sess)
+			for i in range(len(self.variables_to_restore)):
+				if(self.variables_to_restore[i].name.split("/")[-1].split(":")[0]!="moving_variance"):
+					
+					values = np.concatenate((np.array(self.variables_to_restore[i].eval().flatten()), values))
+					count+=1
+		values = np.sort(values)
+		valuesMax = np.amax(values)
+		valuesMin = np.amin(values)
+		s = len(values)
+		import matplotlib.pyplot as plt
+		for_Plot = np.array([values[i] for i in range(len(values)) if i%1000==0])
+		plt.hist(for_Plot, bins='auto', range=(-1,1))
+		plt.yscale('log')
+		plt.title("Distribution of value of weights and biases of Inception V1")
+		plt.xlabel("Values")
+		
+		plt.show()
+		
+		print("The Maximum value is: " + str(valuesMax))
+		print("The Minimum value is: " + str(valuesMin))
+		print("The number of vlaues is: " + str(len(values)))
+		print("Therefore, 99.9% of the values are between " + str(values[int(0.0005*s)]) + " and " + str(values[int(0.9995*s)]))
+		print("66.7% of the values are between " + str(values[int(0.166*s)]) + " and " + str(values[int(0.834*s)]))
+		
+		print(count)
+
+	def bias_test(self):
+		with tf.Session() as sess:
+			self.init_assign_fn(sess)
+			print(len(self.variables_to_restore))
+			print(self.variables_to_restore[1])
+			print(sess.run(self.variables_to_restore[1]))
+			print(sess.run(tf.scalar_mul(0.1, self.variables_to_restore[1])))
+			'''
+			for i in range(len(self.variables_to_restore)):
+				print(self.variables_to_restore[i])
+			'''
+
+	
+	def test_weights(self, path_to_dir, variables_to_print=0):
 		tf.reset_default_graph()
 		self.__set_up_inception()
 		self.assign_weights(path_to_dir)
 		with tf.Session() as sess:
 			self.init_assign_fn(sess)
 			print("Weights: ")
-			print(sess.run(self.variables_to_restore[0]))
+			print(sess.run(self.variables_to_restore[variables_to_print]))
 		
 	def assign_weights(self, path_to_dir):
 		self.init_assign_fn = slim.assign_from_checkpoint_fn(path_to_dir, self.variables_to_restore)	

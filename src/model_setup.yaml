@@ -1,14 +1,14 @@
 ####################
 # Quantization     #
 ####################
-quantize: true
+quantize: false
 quantize_weight: false
 mantissa_width: 10
 exponent_width: 8
 shared_exponent_width: 16
 weight:
-  m_w: 4
-  e_w: 4
+  m_w: 10
+  e_w: 8
   s_w: 16
 
 ####################
@@ -21,8 +21,8 @@ image:
 debug: false
 debug_layer: false
 number_images: 10
-batch_size: 500
-epochs: 2
+batch_size: 100
+epochs: 1
 model: "InceptionV1"
 
 ####################
