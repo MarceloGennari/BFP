@@ -68,7 +68,8 @@ class BfpOutOp : public OpKernel{
 			for ( int k = 0; k<input_flat.size(); k++){
 				output_flat(k) = q.to_var_fp(input_flat(k));
 			}
-			//std::cout << "Number of Crops: " << q.getNbCrop() << std::endl;
+			std::cout << "Number of Crops Up: " << q.nb_crop_up << std::endl;
+			std::cout << "Number of Crops Down: " << q.nb_crop_down << std::endl;
 		
 		}
 		

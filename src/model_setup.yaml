@@ -20,7 +20,7 @@ image:
   num_channels: 3
 debug: false
 debug_layer: false
-number_images: 10
+number_images: 100
 batch_size: 100
 epochs: 1
 model: "InceptionV1"

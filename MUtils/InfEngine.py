@@ -79,6 +79,8 @@ class InfEngine:
 			self.__set_up_inception()
 	
 	def quant_weights(self, path_to_dir):
+		# Remember that the InceptionV1 model uses Batch Normalization instead of weights + mantissas
+		# Therefore, the only values that should be quantized are the weights and biases
 		tf.reset_default_graph()
 		self.__set_up_inception()	
 		saver = tf.train.Saver()
@@ -86,6 +88,8 @@ class InfEngine:
 		with tf.Session() as sess:
 			self.init_assign_fn(sess)
 			for i in range(len(self.variables_to_restore)):
+				if(self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance"):
+					continue
 				self.variables_to_restore[i].assign(bfp_out_module.bfp_out(self.variables_to_restore[i], ShDepth = self.config["weight"]["s_w"], MWidth=self.config["weight"]["m_w"], EWidth=self.config["weight"]["e_w"])).eval()
 			save_path = saver.save(sess, path_to_dir+"model"+str(self.config["weight"]["m_w"])+str(self.config["weight"]["e_w"]) +".ckpt")
 			print("Model saved in path: %s" %save_path) 
@@ -150,7 +154,10 @@ class InfEngine:
 		print("The number of vlaues is: " + str(len(values)))
 		print("Therefore, 99.9% of the values are between " + str(values[int(0.0005*s)]) + " and " + str(values[int(0.9995*s)]))
 		print("66.7% of the values are between " + str(values[int(0.166*s)]) + " and " + str(values[int(0.834*s)]))
-		
+		print("50% of the values are between " + str(values[int(0.25*s)]) + " and " + str(values[int(0.75*s)]))	
+		print("25% of the values are between " + str(values[int(0.375*s)]) + " and " + str(values[int(0.625*s)]))
+		print("1% of the values are between " + str(values[int(0.495*s)]) + " and " + str(values[int(0.505*s)]))
+		print("0.1% of the values are between " + str(values[int(0.4995*s)]) + " and " +  str(values[int(0.5005*s)]))
 		print(count)
 
 	def bias_test(self):

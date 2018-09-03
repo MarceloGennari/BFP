@@ -16,12 +16,12 @@ class Quantizer{
 
 		float to_var_fp_arith(float value);	
 
-		int getNbCrop();
-	
+		static int nb_crop_up;
+		static int nb_crop_down;
 	private:
 		int SharedDepth, e_w, m_w;
+		int exp_offset;
 		int32_t MAX_EXP, MIN_EXP;
-		int nb_crop;
 };
 
 #endif

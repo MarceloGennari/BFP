@@ -23,7 +23,7 @@ plt.show()
 
 with tf.Session(''):
 	print(img)
-	res1 = bfp_out_module.bfp_out(img, ShDepth=3, MWidth=2, EWidth=2).eval()
+	res1 = bfp_out_module.bfp_out(img, ShDepth=3, MWidth=0, EWidth=8).eval()
 	imgplot = plt.imshow(res1[0])
 	plt.show()
 	print(res1[0])

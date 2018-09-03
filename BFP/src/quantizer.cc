@@ -5,12 +5,15 @@ void Quantizer::set(int sh, int e_w, int m_w){
 	this->SharedDepth = sh;
 	this->e_w = e_w;
 	this->m_w = m_w;
-	this->nb_crop = 0;
-	MAX_EXP = (1<<(e_w-1));
-	MIN_EXP = (-1*(1<<(e_w-1)))+1;
+	this->exp_offset = 5;
+	MAX_EXP = (1<<(e_w-1))-exp_offset;
+	MIN_EXP = (-1*(1<<(e_w-1)))+1-exp_offset;
 }
 
-Quantizer::Quantizer(): nb_crop(0){}
+int Quantizer::nb_crop_down = 0;
+int Quantizer::nb_crop_up = 0;
+
+Quantizer::Quantizer(){}
 
 Quantizer::Quantizer(int sh, int e_w, int m_w) : SharedDepth(sh), e_w(e_w), m_w(m_w){
 	/***
@@ -19,13 +22,10 @@ Quantizer::Quantizer(int sh, int e_w, int m_w) : SharedDepth(sh), e_w(e_w), m_w(
 	* Also rembmer that by IEEE754, the exponent is subtracted by 127 (which is the offset)
 	* Also, for FP32 (which is guaranteed), the exponent starts in the 24th bit for 23 bit mantissa
 	***/
-	MAX_EXP = (1<<(e_w-1));
-	MIN_EXP = (-1*(1<<(e_w-1)))+1;
-	this->nb_crop=0;
-}
-
-int Quantizer::getNbCrop(){
-	return this->nb_crop;
+	this->exp_offset = 5;
+	// Creating an offset for the exponent
+	MAX_EXP = (1<<(e_w-1))-exp_offset;
+	MIN_EXP = (-1*(1<<(e_w-1)))+1-exp_offset;
 }
 
 float Quantizer::to_var_fp_arith(float v){
@@ -90,7 +90,7 @@ float Quantizer::to_var_fp(float v){
 	_exp = _exp-127;
 	uint32_t _mant = i & BF::MANT;
 	uint32_t _sign = i & BF::SIGN;
-	
+		
 	if(_exp > MAX_EXP){
 		_exp = MAX_EXP;
 		_exp = _exp+127;
@@ -98,13 +98,13 @@ float Quantizer::to_var_fp(float v){
 		_mant = BF::MANT & BF::MASKM[m_w];
 		i = _mant + _sign + _exp;
 		std::memcpy(&v, &i, sizeof(i));
-		nb_crop++;
+		nb_crop_up++;
 		return v;
 	}
 
 	if(_exp < MIN_EXP){
 		_exp = MIN_EXP;
-		nb_crop++;
+		nb_crop_down++;
 	}
 
 	_exp = _exp + 127;
