@@ -11,6 +11,7 @@ REGISTER_OP("BfpOut")
 	.Attr("ShDepth: int")
 	.Attr("MWidth: int")
 	.Attr("EWidth: int")
+	.Attr("Offset: int")
 	.Input("to_bfp: float")
 	.Output("bfped: float")
 	.SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c){
@@ -25,15 +26,15 @@ class BfpOutOp : public OpKernel{
 			OP_REQUIRES_OK(context, context->GetAttr("ShDepth", &SharedDepth));
 			OP_REQUIRES_OK(context, context->GetAttr("MWidth", &m_w));
 			OP_REQUIRES_OK(context, context->GetAttr("EWidth", &e_w));
-
+			OP_REQUIRES_OK(context, context->GetAttr("Offset", &ofs));
 	
 			// Checking if inputs are right
 			OP_REQUIRES(context, SharedDepth>=1, errors::InvalidArgument("Need Shared Depth bigger than 0"));
 			OP_REQUIRES(context, m_w >=0, errors::InvalidArgument("Need Mantissa Width bigger or equal to 0"));
 			OP_REQUIRES(context, e_w >=0, errors::InvalidArgument("Need Exponent Width bigger or equal to 0"));	
-			
+	
 			// Initializing the quantizer
-			q.set(SharedDepth, e_w, m_w);	
+			q.set(SharedDepth, e_w, m_w, ofs);	
 		}
 
 		void Compute(OpKernelContext* context) override {
@@ -66,18 +67,17 @@ class BfpOutOp : public OpKernel{
 			auto input_flat = input_tensor.flat<float>();
 			auto output_flat = output_tensor->flat<float>();	
 			for ( int k = 0; k<input_flat.size(); k++){
-				output_flat(k) = q.to_var_fp(input_flat(k));
+				output_flat(k) = q.to_closest(input_flat(k));
 			}
-			std::cout << "Number of Crops Up: " << q.nb_crop_up << std::endl;
-			std::cout << "Number of Crops Down: " << q.nb_crop_down << std::endl;
+			// std::cout << "Number of Crops Up: " << q.nb_crop_up << std::endl;
+			// std::cout << "Number of Crops Down: " << q.nb_crop_down << std::endl;
 		
 		}
 		
 
 	private:
 		Quantizer q;
-		int SharedDepth, e_w, m_w;
+		int SharedDepth, e_w, m_w, ofs;
 };
 
 REGISTER_KERNEL_BUILDER(Name("BfpOut").Device(DEVICE_CPU), BfpOutOp);
-

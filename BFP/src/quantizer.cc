@@ -1,31 +1,24 @@
 #include "quantizer.h"
 #include "bintypes.h"
 #include <iostream>
-void Quantizer::set(int sh, int e_w, int m_w){
-	this->SharedDepth = sh;
-	this->e_w = e_w;
-	this->m_w = m_w;
-	this->exp_offset = 5;
-	MAX_EXP = (1<<(e_w-1))-exp_offset;
-	MIN_EXP = (-1*(1<<(e_w-1)))+1-exp_offset;
-}
 
 int Quantizer::nb_crop_down = 0;
 int Quantizer::nb_crop_up = 0;
 
-Quantizer::Quantizer(){}
-
-Quantizer::Quantizer(int sh, int e_w, int m_w) : SharedDepth(sh), e_w(e_w), m_w(m_w){
-	/***
-	* That's a simple initialization fo the maximum value and minimum value of exponents
-	* Remember that this is using 2s complement
-	* Also rembmer that by IEEE754, the exponent is subtracted by 127 (which is the offset)
-	* Also, for FP32 (which is guaranteed), the exponent starts in the 24th bit for 23 bit mantissa
-	***/
-	this->exp_offset = 5;
-	// Creating an offset for the exponent
+// DistType is defaulted as FloatFixed point
+void Quantizer::set(int sh, int e_w, int m_w, int ofs, DistType dist){
+	QuantizerBase::set(e_w, m_w, dist);
+	this->SharedDepth = sh;
+	this->exp_offset = ofs;
 	MAX_EXP = (1<<(e_w-1))-exp_offset;
 	MIN_EXP = (-1*(1<<(e_w-1)))+1-exp_offset;
+}
+
+Quantizer::Quantizer(){}
+
+// DistType is defaulted as FloatFixed point
+Quantizer::Quantizer(int sh, int e_w, int m_w, int ofs, DistType dist){
+	this->set(sh, e_w, m_w, ofs, dist);
 }
 
 float Quantizer::to_var_fp_arith(float v){
@@ -117,6 +110,3 @@ float Quantizer::to_var_fp(float v){
 	
 	return v;
 }
-
-
-

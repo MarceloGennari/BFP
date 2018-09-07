@@ -1,0 +1,6 @@
+###################
+# INFERENCE SETUP #
+###################
+batch_size: 100
+epochs: 1
+debug: False

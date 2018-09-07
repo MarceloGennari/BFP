@@ -7,6 +7,7 @@ from img_proc import ImgProc
 from sysnet_labels import Label
 
 bfp_out_module = tf.load_op_library('/home/marcelo/tensorflow/Scripts/BFP/lib/bfp_out.so')
+quant_out_module = tf.load_op_library('/home/marcelo/tensorflow/Scripts/BFP/lib/quant_out.so')
 slim = tf.contrib.slim
 
 class InfEngine:
@@ -47,19 +48,29 @@ class InfEngine:
                 		right5+=1
 			else:
                 		false5+=1
+		acc1 = (right1/(right1+false1))/0.698
+		acc5 = (right5/(right5+false5))/0.896
 		print("Mantissa Width: " + str(self.config["mantissa_width"]))
 		print("Exponent Width: " + str(self.config["exponent_width"]))
 		print("Weight Mantissa Width: " + str(self.config["weight"]["m_w"]))
 		print("Weight Exponent Width: " + str(self.config["weight"]["e_w"]))
-		print("Top 1: "+ str(right1) + " correct and " + str(false1) + " false")
-		print("Top 5: "+ str(right5) + " correct and " + str(false5) + " false")
+		print("Top 1: "+ str(right1) + " correct and " + str(false1) + " false (acc: " + str(acc1)+")")
+		print("Top 5: "+ str(right5) + " correct and " + str(false5) + " false (acc: " + str(acc5)+")")
 
 	def __get_sysnet(self):
 		fil = open(self.config["gr_truth_dir"] + "ILSVRC2012_validation_ground_truth.txt", "r")
 		self.ground_truth = np.array(fil.read().splitlines(), int)
 		self.mPred = Label(self.config["lab_map"] + self.map_path)
 		self.mTru = Label(self.config["lab_map"] + "ILSVRCMap.txt")
-		
+
+	def set_offset(self, offset=None):
+		if(offset is not None):
+			self.config["weight"]["offset"] = offset
+		if(offset is not None):
+			self.path_to_ckpt = self.config["to_ckpt"] + self.config["Model"][self.model]["to_quant_w"] + "model" + str(self.config["weight"]["m_w"]) + str(self.config["weight"]["e_w"]) + str(self.config["weight"]["offset"]) + ".ckpt"
+			tf.reset_default_graph()
+			self.__set_up_inception()
+	
 	def set_width(self, m_w=None, e_w=None, s_w=None, w_m_w=None, w_e_w =None, w_s_w=None):
 		if(m_w is not None):
 			self.config["mantissa_width"]        = m_w
@@ -74,7 +85,7 @@ class InfEngine:
 		if(w_s_w is not None):
 			self.config["weight"]["s_w"]         = w_s_w
 		if(w_m_w is not None or w_e_w is not None or w_s_w is not None):
-			self.path_to_ckpt = self.config["to_ckpt"] + self.config["Model"][self.model]["to_quant_w"] + "model" + str(self.config["weight"]["m_w"]) + str(self.config["weight"]["e_w"]) +".ckpt" 
+			self.path_to_ckpt = self.config["to_ckpt"] + self.config["Model"][self.model]["to_quant_w"] + "model" + str(self.config["weight"]["m_w"]) + str(self.config["weight"]["e_w"]) + str(self.config["weight"]["offset"]) +".ckpt" 
 			tf.reset_default_graph()
 			self.__set_up_inception()
 	
@@ -90,8 +101,14 @@ class InfEngine:
 			for i in range(len(self.variables_to_restore)):
 				if(self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance"):
 					continue
-				self.variables_to_restore[i].assign(bfp_out_module.bfp_out(self.variables_to_restore[i], ShDepth = self.config["weight"]["s_w"], MWidth=self.config["weight"]["m_w"], EWidth=self.config["weight"]["e_w"])).eval()
-			save_path = saver.save(sess, path_to_dir+"model"+str(self.config["weight"]["m_w"])+str(self.config["weight"]["e_w"]) +".ckpt")
+				res = self.variables_to_restore[i].eval()
+				maxi = np.amax(res)
+				mini = np.amin(res)
+				maxAbs = np.absolute(maxi)
+				minAbs = np.absolute(mini)
+				absMax = maxAbs if maxAbs > minAbs else minAbs
+				self.variables_to_restore[i].assign(quant_out_module.quant_out(self.variables_to_restore[i], Scaling = absMax, MWidth=self.config["weight"]["m_w"], EWidth=self.config["weight"]["e_w"])).eval()
+			save_path = saver.save(sess, path_to_dir+"model"+str(self.config["weight"]["m_w"])+str(self.config["weight"]["e_w"]) + str(self.config["weight"]["offset"]) +".ckpt")
 			print("Model saved in path: %s" %save_path) 
 
 	def scale_weights(self, fac, save=False):
@@ -106,15 +123,31 @@ class InfEngine:
 		with tf.Session() as sess:
 			self.init_assign_fn(sess)
 			w_n =0
+			last_block=''
 			for i in range(len(self.variables_to_restore)):
+				inception_block = self.variables_to_restore[i].name.split("/")[1].split("Mixed_")
+				this_block = ''	
+				if(inception_block[0] == ''):
+					this_block = inception_block[1]
+
+				if(this_block!='' and this_block!=last_block):
+					print("Changed inception blocks")	
+					print("This Block: " + this_block)
+					print("Last Block: " + last_block)
+
+#				if(this_block == last_block and last_block!=''):
+					#print(True)
+					
 				if (self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="weights"):
 					if ( w_n <= 2):
 						w_n +=1
 						fst = tf.scalar_mul(fac, self.variables_to_restore[i])
 						self.variables_to_restore[i].assign(fst).eval()
+					last_block = this_block
 					continue
 
 				if(self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance"):
+					last_block = this_block
 					continue				
 	
 				### NOTICE THE ** OPERATOR WHICH IS A POWER. THIS IS BECAUSE IT NEEDS TO BE MULTIPLIED BY THE UPSTREAM SCALINGS
@@ -123,6 +156,8 @@ class InfEngine:
 			#	if self.variables_to_restore[i].name.split("/")[-1].split(":")[0]=="moving_variance":
 			#		fst = tf.scalar_mul(fac, fst)
 				self.variables_to_restore[i].assign(fst).eval()
+			
+				last_block = this_block
 			if(save):
 				save_path = saver.save(sess, "/mnt/d/Data/Inception/Scaled/scaled_weight.ckpt")
 
@@ -140,25 +175,7 @@ class InfEngine:
 		valuesMax = np.amax(values)
 		valuesMin = np.amin(values)
 		s = len(values)
-		import matplotlib.pyplot as plt
-		for_Plot = np.array([values[i] for i in range(len(values)) if i%1000==0])
-		plt.hist(for_Plot, bins='auto', range=(-1,1))
-		plt.yscale('log')
-		plt.title("Distribution of value of weights and biases of Inception V1")
-		plt.xlabel("Values")
-		
-		plt.show()
-		
-		print("The Maximum value is: " + str(valuesMax))
-		print("The Minimum value is: " + str(valuesMin))
-		print("The number of vlaues is: " + str(len(values)))
-		print("Therefore, 99.9% of the values are between " + str(values[int(0.0005*s)]) + " and " + str(values[int(0.9995*s)]))
-		print("66.7% of the values are between " + str(values[int(0.166*s)]) + " and " + str(values[int(0.834*s)]))
-		print("50% of the values are between " + str(values[int(0.25*s)]) + " and " + str(values[int(0.75*s)]))	
-		print("25% of the values are between " + str(values[int(0.375*s)]) + " and " + str(values[int(0.625*s)]))
-		print("1% of the values are between " + str(values[int(0.495*s)]) + " and " + str(values[int(0.505*s)]))
-		print("0.1% of the values are between " + str(values[int(0.4995*s)]) + " and " +  str(values[int(0.5005*s)]))
-		print(count)
+		return values
 
 	def bias_test(self):
 		with tf.Session() as sess:
@@ -210,7 +227,7 @@ class InfEngine:
 		self.map_path = self.config["Model"]["InceptionV1"]["map_path"]
 		self.X = tf.placeholder(tf.float32, shape =[None, self.config["image"]["height"], self.config["image"]["width"], self.config["image"]["num_channels"]])
 		with slim.arg_scope(inception.inception_v1_arg_scope()):
-			self.logits, self.end_points = inception.inception_v1(self.X, num_classes=self.num_clss, is_training=False, m_w = self.config["mantissa_width"], e_w = self.config["exponent_width"], s_w = self.config["shared_exponent_width"], alter=self.config["quantize"], debug=self.config["debug_layer"])
+			self.logits, self.end_points = inception.inception_v1(self.X, num_classes=self.num_clss, is_training=False, offset = self.config["offset"], m_w = self.config["mantissa_width"], e_w = self.config["exponent_width"], s_w = self.config["shared_exponent_width"], alter=self.config["quantize"], debug=self.config["debug_layer"])
 		self.predictions = self.end_points["Predictions"]
 		self.variables_to_restore = slim.get_variables_to_restore()
 		self.init_assign_fn = slim.assign_from_checkpoint_fn(self.config["to_ckpt"]+self.config["Model"]["InceptionV1"]["ckpt_path"], self.variables_to_restore)

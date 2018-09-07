@@ -1,6 +1,6 @@
 from InfEngine import InfEngine
 
-infer = InfEngine("/home/marcelo/tensorflow/Scripts/src/model_setup.yaml")
+infer = InfEngine("/home/marcelo/tensorflow/Scripts/MUtils/config/model_setup.yaml")
 
 infer.scale_weights(4, save=True)
 #infer.inference()
