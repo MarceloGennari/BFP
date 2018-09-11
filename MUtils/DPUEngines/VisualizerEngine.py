@@ -4,8 +4,8 @@ import numpy as np
 
 class VisualizerEngine(BaseEngine.BaseEngine):
 	
-  def __init__(self):
-    self._set_up_inception_()
+  def __init__(self, alter=False):
+    self._set_up_inception_(alter=alter)
 
   def get_weights(self, path_to_ckpt):
     self._assign_weights_(path_to_ckpt)

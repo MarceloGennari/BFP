@@ -18,21 +18,25 @@ class BaseEngine:
   def _assign_weights_(self, path_to_ckpt):
     self.init_assign_fn = slim.assign_from_checkpoint_fn(path_to_ckpt, self.variables_to_restore)
 
- # def __quant_arg_scope_():
-	# Defines the scope of the bfp modules
-	# To be Implemented
+  def _reset_inception_(self, alter=False, m_w=20, e_w=8):
+    tf.reset_default_graph()
+    self.__set_up_base__(alter=alter, m_w=m_w, e_w=e_w)
 
-  def _set_up_inception_(self):
+
+  def _set_up_inception_(self, alter=False, m_w=20, e_w=8):
     if(BaseEngine.is_set):
       self.predictions = BaseEngine.predictions
       self.variables_to_restore = BaseEngine.variables_to_restore
       self._assign_weights_("/mnt/d/Data/Inception/inception_v1.ckpt")
       self.X = BaseEngine.X 
       return
+    self.__set_up_base__(alter=alter, m_w=m_w,e_w=e_w)
+
+  def __set_up_base__(self, alter=False, m_w=20, e_w=8):
     imcon = self._read_yaml_("../config/image_setup.yaml")
     self.X = tf.placeholder(tf.float32, shape =[None, imcon["height"], imcon["width"], imcon["nChan"]])
     with slim.arg_scope(inception.inception_v1_arg_scope()):
-      _ , end_points = inception.inception_v1(self.X, num_classes=1001, is_training=False)
+      _ , end_points=inception.inception_v1(self.X,num_classes=1001,is_training=False,alter=alter,m_w=m_w,e_w=e_w)
     self.predictions = end_points["Predictions"]
     self.variables_to_restore = slim.get_variables_to_restore()
     self._assign_weights_("/mnt/d/Data/Inception/inception_v1.ckpt")

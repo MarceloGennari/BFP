@@ -7,8 +7,8 @@ import numpy as np
 import tensorflow as tf
 
 class InferenceEngine(BaseEngine.BaseEngine):
-  def __init__(self):
-    self._set_up_inception_()
+  def __init__(self, alter=False, m_w=20, e_w =8):
+    self._set_up_inception_(alter=alter,m_w=m_w, e_w=e_w)
     self._set_up_images_()
     self.__get_sysnet__()
 
