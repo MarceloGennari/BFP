@@ -1,14 +1,15 @@
 import BaseEngine
 import sys
-sys.path.insert(0, '/home/marcelo/tensorflow/Scripts/MUtils')
+sys.path.insert(0, '/home/marcelo/tensorflow/Scripts/MUtils/Preprocessing')
+sys.path.insert(0, '/home/marcelo/tensorflow/Scripts/MUtils/')
 from img_proc import ImgProc
 from sysnet_labels import Label
 import numpy as np
 import tensorflow as tf
 
 class InferenceEngine(BaseEngine.BaseEngine):
-  def __init__(self, alter=False, m_w=20, e_w =8):
-    self._set_up_inception_(alter=alter,m_w=m_w, e_w=e_w)
+  def __init__(self, alter=False, m_w=20, e_w =8, arch='v1'):
+    self._set_up_inception_(alter=alter,m_w=m_w, e_w=e_w, arch=arch)
     self._set_up_images_()
     self.__get_sysnet__()
 

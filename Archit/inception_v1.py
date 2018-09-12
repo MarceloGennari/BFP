@@ -61,7 +61,7 @@ def inception_v1_base(inputs,
   Raises:
     ValueError: if final_endpoint is not set to one of the predefined values.
   """
-  
+  print("Using V1 arch")  
   # Added by Marcelo
   # This is a flag to accept or not my modifications
   m_w_layer = []

@@ -4,7 +4,7 @@
 #include <bitset>
 #include <algorithm>
 
-enum class DistType {FixedPoint, FloatingPoint, FloatFixedPoint};
+enum class DistType {FixedPoint, FloatingPoint, FloatFixedPoint, INT};
 
 class FloatTypes{
 	public:
@@ -28,4 +28,22 @@ class FloatTypes{
 		static std::vector<float> getFloatingPoint(int e_w, int m_w);
 		static std::vector<float> getFixedPoint(int sizeBit);
 		static std::vector<float> getFloatFixedPoint(int e_w, int m_w);
+};
+
+class IntTypes{
+	public:
+		IntTypes(int sizeBit, DistType=DistType::INT);
+	
+		static std::vector<int> getDistribution(DistType dist,int sizeBit);
+	
+		std::vector<int> getDistribution();
+		std::vector<int> getInt();
+
+	private:
+		int sizeBit;
+		DistType dist;
+		std::vector<int> distribution;
+		
+		static std::vector<int> getInt(int sizeBit);
+
 }; 

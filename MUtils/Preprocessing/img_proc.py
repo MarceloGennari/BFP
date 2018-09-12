@@ -1,9 +1,6 @@
 from PIL import Image
 import numpy as np
 import tensorflow as tf
-
-import sys
-sys.path.insert(0, '/home/marcelo/git/models/research/slim/preprocessing/')
 import preprocessing_factory as pp
 
 class ImgProc:

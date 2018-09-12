@@ -28,7 +28,7 @@ trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 # Added by Marcelo
 BFP_out = tf.load_op_library('/home/marcelo/tensorflow/Scripts/BFP/lib/bfp_out.so')
 
-def inception_v1_base(inputs,
+def HWInception_v1_base(inputs,
                       final_endpoint='Mixed_5c',
                       scope='InceptionV1',
                       m_w=1,
@@ -61,7 +61,7 @@ def inception_v1_base(inputs,
   Raises:
     ValueError: if final_endpoint is not set to one of the predefined values.
   """
-  
+  print("Using HW Inception")  
   # Added by Marcelo
   # This is a flag to accept or not my modifications
   m_w_layer = []
@@ -360,7 +360,7 @@ def inception_v1_base(inputs,
     raise ValueError('Unknown final endpoint %s' % final_endpoint)
 
 
-def inception_v1(inputs,
+def HWInception_v1(inputs,
                  num_classes=1000,
                  is_training=True,
                  dropout_keep_prob=0.8,
@@ -416,7 +416,7 @@ def inception_v1(inputs,
   with tf.variable_scope(scope, 'InceptionV1', [inputs], reuse=reuse) as scope:
     with slim.arg_scope([slim.batch_norm, slim.dropout],
                         is_training=is_training):
-      net, end_points = inception_v1_base(inputs, scope=scope, m_w=m_w, s_w=s_w, e_w=e_w, alter=alter, debug=debug, scale=scale)
+      net, end_points = HWInception_v1_base(inputs, scope=scope, m_w=m_w, s_w=s_w, e_w=e_w, alter=alter, debug=debug, scale=scale)
       with tf.variable_scope('Logits'):
         if global_pool:
           # Global average pooling.
@@ -437,6 +437,6 @@ def inception_v1(inputs,
         end_points['Logits'] = logits
         end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
   return logits, end_points
-inception_v1.default_image_size = 224
+HWInception_v1.default_image_size = 224
 
-inception_v1_arg_scope = inception_utils.inception_arg_scope
+HWInception_v1_arg_scope = inception_utils.inception_arg_scope

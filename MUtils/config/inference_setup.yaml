@@ -1,6 +1,6 @@
 ###################
 # INFERENCE SETUP #
 ###################
-batch_size: 750
+batch_size: 10
 epochs: 1
 debug: False

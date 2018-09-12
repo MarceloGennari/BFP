@@ -2,14 +2,16 @@
 
 FloatTypes::FloatTypes(int exponent_width, int mantissa_width, DistType dist) : e_w(exponent_width), m_w(mantissa_width), dist(dist) {};
 
+IntTypes::IntTypes(int sizeBit, DistType dist) : sizeBit(sizeBit), dist(dist) {};
+
 /*******************************
  NON-STATIC MEMBER FUNCTIONS
 *******************************/
 std::vector<float> FloatTypes::getDistribution(){
-	return getDistribution(dist, e_w, m_w);
+	return FloatTypes::getDistribution(dist, e_w, m_w);
 }
 std::vector<float> FloatTypes::getFixedPoint(){
-	return getFixedPoint(e_w+m_w+1); // The +1 is to account for negative numbers
+	return FloatTypes::getFixedPoint(e_w+m_w+1); // The +1 is to account for negative numbers
 }
 
 std::vector<float> FloatTypes::getFloatingPoint(){
@@ -20,6 +22,13 @@ std::vector<float> FloatTypes::getFloatFixedPoint(){
 	return FloatTypes::getFloatFixedPoint(this->e_w, this->m_w);
 }
 
+std::vector<int> IntTypes::getDistribution(){
+	return IntTypes::getDistribution(dist, this->sizeBit); 
+}
+
+std::vector<int> IntTypes::getInt(){
+	return IntTypes::getInt(this->sizeBit);
+}
 
 /******************************
  STATIC MEMBER FUNCTIONS
@@ -44,6 +53,31 @@ std::vector<float> FloatTypes::getDistribution(DistType d, int sizeBit){
 		default:			std::cout << "Not valid. Abort" << std::endl;
 						exit(0);
 	}
+}
+
+std::vector<int> IntTypes::getDistribution(DistType d, int sizeBit){
+	switch(d){
+		case DistType::INT: return getInt(sizeBit);
+		default: std::cout << "Not valid. Abort" << std::endl;
+			 exit(0);
+	}
+}
+
+/********************
+* PRIVATE MEMBER FUNCTIONS
+*********************/
+std::vector<int> IntTypes::getInt(int sizeBit){
+	/*
+	* This function returns a vector that has all the possible int values given the size bit
+	*/
+	std::vector<int> values;
+	int numbBits = sizeBit;
+	int maxV = std::pow(2, numbBits);
+	
+	for(int k = 1-maxV; k<maxV; k++){
+		values.push_back(k);
+	}
+	return values;
 }
 
 std::vector<float> FloatTypes::getFixedPoint(int sizeBit){

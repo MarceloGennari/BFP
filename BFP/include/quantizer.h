@@ -8,15 +8,16 @@
 #include <vector>
 #include "fp_types.h"
 
+template<typename T>
 class QuantizerBase{
 	public:
-		float to_closest(float value);
+		T to_closest(T value);
 		void print_dist();		
 		virtual ~QuantizerBase() = 0;
 	
 	protected:
 		int e_w, m_w;
-		std::vector<float> fp;
+		std::vector<T> fp;
 
 		bool is_set_fp();	
 		void set(int EWidth, int MWidth, DistType d);
@@ -26,7 +27,10 @@ class QuantizerBase{
 		void set_fp(DistType d);
 };
 
-class Quantizer : public QuantizerBase{
+
+#include "quantizer_base.inl"
+
+class Quantizer : public QuantizerBase<float>{
 	public:
 		Quantizer();
 		Quantizer(int sh, int e_w, int m_w, int ofs, DistType = DistType::FloatFixedPoint);
@@ -43,7 +47,7 @@ class Quantizer : public QuantizerBase{
 		int32_t MAX_EXP, MIN_EXP;
 };
 
-class WeightQuantizer : public QuantizerBase {
+class WeightQuantizer : public QuantizerBase<float> {
 	public:
 		WeightQuantizer();	
 		WeightQuantizer(int EWidth, int MWidth, float sc, DistType = DistType::FloatFixedPoint);

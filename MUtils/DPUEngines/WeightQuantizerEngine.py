@@ -4,8 +4,8 @@ import numpy as np
 
 class WeightQuantizerEngine(BaseEngine.BaseEngine):
 
-  def __init__(self, alter = False):
-    self._set_up_inception_(alter=alter)
+  def __init__(self, alter = False, arch='v1'):
+    self._set_up_inception_(alter=alter,arch=arch)
     quant_out_module = tf.load_op_library('/home/marcelo/tensorflow/Scripts/BFP/lib/quant_out.so')
     self.quant = quant_out_module.quant_out
 
