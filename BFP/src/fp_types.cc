@@ -74,7 +74,7 @@ std::vector<int> IntTypes::getInt(int sizeBit){
 	int numbBits = sizeBit;
 	int maxV = std::pow(2, numbBits);
 	
-	for(int k = 1-maxV; k<maxV; k++){
+	for(int k = 1-(maxV/2); k<(maxV/2)+1; k++){
 		values.push_back(k);
 	}
 	return values;

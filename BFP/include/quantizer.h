@@ -17,9 +17,11 @@ class QuantizerBase{
 	
 	protected:
 		int e_w, m_w;
+		int bitSize;
 		std::vector<T> fp;
 
-		bool is_set_fp();	
+		bool is_set_fp();
+		void set_bitSize(int bitSize);	
 		void set(int EWidth, int MWidth, DistType d);
 		void set(int EWidth, int MWIdth);	
 		void set_e_w(int EWidth);
@@ -55,6 +57,16 @@ class WeightQuantizer : public QuantizerBase<float> {
 
 	private:
 		float sc;
+};
+
+class HardwareQuantizer : public QuantizerBase<int> {
+	public:
+		HardwareQuantizer();
+		HardwareQuantizer(int bitSize, DistType = DistType::INT);
+		void set(int bitSize, DistType = DistType::INT);
+
+	private:
+		int bitSize;
 };
 
 #endif

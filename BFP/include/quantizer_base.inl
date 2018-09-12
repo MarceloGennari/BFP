@@ -1,5 +1,6 @@
 #include "quantizer.h"
 #include <iostream>
+#include <typeinfo>
 
 template<class T>
 inline T QuantizerBase<T>::to_closest(T value){
@@ -50,8 +51,13 @@ inline void QuantizerBase<T>::set_m_w(int MWidth){
 }
 
 template<class T>
+inline void QuantizerBase<T>::set_bitSize(int bitSize){
+	this->bitSize = bitSize;
+}
+
+template<class T>
 inline void QuantizerBase<T>::set_fp(DistType d){
-	this->fp = FloatTypes::getDistribution(d, e_w, m_w);
+	this->fp = TypesWrapper<T>::getDistribution(d, e_w, m_w, bitSize);
 }
 
 template<class T>

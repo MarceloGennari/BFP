@@ -46,4 +46,24 @@ class IntTypes{
 		
 		static std::vector<int> getInt(int sizeBit);
 
-}; 
+};
+
+ 
+template<class T>
+class TypesWrapper;
+
+template<>
+class TypesWrapper<int>{
+	public:
+		static std::vector<int> getDistribution(DistType dist, int e_w, int m_w, int bitSize){
+			return IntTypes::getDistribution(dist, bitSize);
+		};
+};
+
+template<>
+class TypesWrapper<float>{
+	public:
+		static std::vector<float> getDistribution(DistType dist, int e_w, int m_w, int bitSize){
+			return FloatTypes::getDistribution(dist, e_w, m_w);
+		};
+};
