@@ -101,7 +101,7 @@ class INT8OutOp : public OpKernel{
 		int m_w, e_w;
 		float sc;
 		DistType d;
-		WeightQuantizer q;	
+		HardwareQuantizer q;	
 };
 
 REGISTER_KERNEL_BUILDER(Name("INT8Out").Device(DEVICE_CPU), INT8OutOp); 
