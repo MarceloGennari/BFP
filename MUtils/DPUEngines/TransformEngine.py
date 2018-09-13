@@ -40,4 +40,24 @@ class TransformEngine(BaseEngine.BaseEngine):
         self.variables_to_restore[4*i+3].assign(moving_variance).eval()
       save_path = saver.save(sess, '/mnt/d/Data/Inception/inception_v1_noBatch.ckpt')
       print("Model saved in path: %s" %save_path)
-#return weights, beta, moving_mean, moving_variance  
+
+  def transform_to_INT_Bias(self):
+    """
+	The idea is to multiply all biases to be in the range for the input image (which was multiplied by 127)
+    """
+    self._assign_weights_('/mnt/d/Data/Inception/inception_v1_noBatch.ckpt')
+    saver = tf.train.Saver()
+    with tf.Session() as sess:
+      self.init_assign_fn(sess)
+      for i in range(57):
+        beta = self.variables_to_restore[4*i + 1].eval()
+        numBatches = beta.size
+        for j in range(numBatches):
+          beta[j] = 127*beta[j]
+        self.variables_to_restore[4*i+1].assign(beta).eval()
+      # This is the last bias of the fully connected layer
+      beta = self.variables_to_restore[229].eval()
+      self.variables_to_restore[229].assign(beta).eval()
+      save_path = saver.save(sess, '/mnt/d/Data/Inception/inception_v1_noBatch_biasScaled.ckpt')
+      
+      print("Model saved in path: %s" %save_path)

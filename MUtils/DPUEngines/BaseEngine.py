@@ -25,6 +25,8 @@ class BaseEngine:
     tf.reset_default_graph()
     self.__set_up_base__(alter=alter, m_w=m_w, e_w=e_w, arch=arch)
 
+  def get_weights(self):
+    return self.variables_to_restore
 
   def _set_up_inception_(self, alter=False, m_w=20, e_w=8, arch='v1'):
     if(BaseEngine.is_set):

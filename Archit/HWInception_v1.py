@@ -36,7 +36,6 @@ def HWInception_v1_base(inputs,
                       s_w=3,
 		      offset=0,
                       alter=False,
-                      debug=False,
                       scale=False):
   """Defines the Inception V1 base architecture.
 
@@ -87,8 +86,8 @@ def HWInception_v1_base(inputs,
                           stride=1, padding='SAME'):
         end_point = 'Conv2d_1a_7x7'	
         net = inputs
+        net = tf.scalar_mul(127, net) 
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[0], MWidth=m_w_layer[0], EWidth=e_w_layer[0])
-        if(debug): net = tf.Print(net, [net], "Image Input: \n", summarize=999999999) 
         net = slim.conv2d(net, 64, [7, 7], stride=2, scope=end_point)
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[0], MWidth=m_w_layer[0], EWidth=e_w_layer[0])
         end_points[end_point] = net
@@ -110,7 +109,6 @@ def HWInception_v1_base(inputs,
         end_point = 'MaxPool_3a_3x3'
         net = slim.max_pool2d(net, [3, 3], stride=2, scope=end_point)
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[2], MWidth=m_w_layer[2], EWidth=e_w_layer[2])
-        if(debug): net = tf.Print(net, [net], "After Last Convolution first Branch of Inception: \n", summarize=999999999)
         end_points[end_point] = net
         if final_endpoint == end_point: return net, end_points
 
@@ -136,7 +134,6 @@ def HWInception_v1_base(inputs,
           net = tf.concat(
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
-        if(debug): net = tf.Print(net, [net], "After Last Convolution second Branch of Inception: \n", summarize=999999999)
         end_points[end_point] = net
         if final_endpoint == end_point: return net, end_points
 
@@ -162,7 +159,6 @@ def HWInception_v1_base(inputs,
           net = tf.concat(
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
-        if(debug): net = tf.Print(net, [net], "After Last Convolution third Branch of Inception: \n", summarize=999999999)
         end_points[end_point] = net
         if final_endpoint == end_point: return net, end_points
 
@@ -193,7 +189,6 @@ def HWInception_v1_base(inputs,
           net = tf.concat(
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
-        if(debug): net = tf.Print(net, [net], "After third Inception Block: \n", summarize=999999999) 
         end_points[end_point] = net
         if final_endpoint == end_point: return net, end_points
 
@@ -220,7 +215,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After fourth Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'Mixed_4d'
@@ -246,7 +240,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After fifth Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'Mixed_4e'
@@ -272,7 +265,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After sixth Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'Mixed_4f'
@@ -298,7 +290,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[0], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After seventh Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'MaxPool_5a_2x2'
@@ -329,7 +320,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[50], ShDepth=s_e_layer[3], MWidth=m_w_layer[3], EWidth=e_w_layer[3])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After eighth Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'Mixed_5c'
@@ -355,7 +345,6 @@ def HWInception_v1_base(inputs,
               axis=3, values=[branch_0, branch_1, branch_2, branch_3])
         if(alter): net = BFP_out.bfp_out(net, offset=ofs_layer[57], ShDepth=s_e_layer[57], MWidth=m_w_layer[57], EWidth=e_w_layer[57])
         end_points[end_point] = net
-        if(debug): net = tf.Print(net, [net], "After ninth Inception Block: \n", summarize=999999999) 
         if final_endpoint == end_point: return net, end_points
     raise ValueError('Unknown final endpoint %s' % final_endpoint)
 
@@ -374,7 +363,6 @@ def HWInception_v1(inputs,
                  s_w=3,
 		 offset=0,
                  alter=False,
-                 debug=False,
                  scale=False):
   """Defines the Inception V1 architecture.
 
@@ -416,7 +404,7 @@ def HWInception_v1(inputs,
   with tf.variable_scope(scope, 'InceptionV1', [inputs], reuse=reuse) as scope:
     with slim.arg_scope([slim.batch_norm, slim.dropout],
                         is_training=is_training):
-      net, end_points = HWInception_v1_base(inputs, scope=scope, m_w=m_w, s_w=s_w, e_w=e_w, alter=alter, debug=debug, scale=scale)
+      net, end_points = HWInception_v1_base(inputs, scope=scope, m_w=m_w, s_w=s_w, e_w=e_w, alter=alter, scale=scale)
       with tf.variable_scope('Logits'):
         if global_pool:
           # Global average pooling.
@@ -435,6 +423,12 @@ def HWInception_v1(inputs,
           logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
 
         end_points['Logits'] = logits
+        # I am premultiplying by 1/127 before softmax function because of the problem that:
+	# 	if softmax(logits) gives values 0.1 0.15 and 0.75 then
+	#	   softmax(100*logits) will give values like 0.00000001 0.00000000015 and 0.9999999999
+	#	In software this is truncated to 0.0 0.0 and 1, which means that there is no way to know top-5
+	# Premultiplying by the end gain gets rid of this problem
+        logits = tf.scalar_mul(1/127, logits)
         end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
   return logits, end_points
 HWInception_v1.default_image_size = 224

@@ -35,8 +35,8 @@ class InferenceEngine(BaseEngine.BaseEngine):
       it = int(i*batch_s)
       with tf.Session() as sess:
         self.init_assign_fn(sess)
-        predictions_val = self.predictions.eval(feed_dict={self.X: self.batch[it:it+batch_s]})
-        self.predicted_classes[it:it+batch_s] = np.argsort(predictions_val, axis=1)
+        self.predictions_val = self.predictions.eval(feed_dict={self.X: self.batch[it:it+batch_s]})
+        self.predicted_classes[it:it+batch_s] = np.argsort(self.predictions_val, axis=1)
     return self.predicted_classes
 
   def print_results(self, w_e_w, w_m_w):
@@ -47,6 +47,7 @@ class InferenceEngine(BaseEngine.BaseEngine):
         print("For image " + str(i+1) + " the top five are: ")
         for j in range(5):
           print(" " + str(j+1) + ": " + self.mPred.getHumanLabel(self.predicted_classes[i][1001-1-j]-1))
+          print(" " + str(j+1) + ": " + str(self.predictions_val[i][self.predicted_classes[i][1001-1-j]]-1)) 
       if self.mTru.isTop1(self.ground_truth[i]-1, self.mPred, self.predicted_classes[i]):
         right1+=1
       else:
