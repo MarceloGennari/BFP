@@ -2,10 +2,14 @@ import BaseEngine
 import tensorflow as tf
 import numpy as np
 import math
+
+
 class TransformEngine(BaseEngine.BaseEngine):
 
   def __init__(self, alter=False, arch='v1'):
     self._set_up_inception_(alter=alter, arch=arch)
+    int8_out_module = tf.load_op_library('/home/marcelo/tensorflow/Scripts/BFP/lib/int8_out.so')
+    self.qnt = int8_out_module.int8_out
 
   def transform_to_bias(self):
     """
@@ -61,3 +65,22 @@ class TransformEngine(BaseEngine.BaseEngine):
       save_path = saver.save(sess, '/mnt/d/Data/Inception/inception_v1_noBatch_biasScaled.ckpt')
       
       print("Model saved in path: %s" %save_path)
+
+  def transform_to_int8(self):
+    """
+     The idea is to quantize the weights and return the scalings so that they are INT8 in hardware
+    """
+    self._assign_weights_('/mnt/d/Data/Inception/inception_v1_noBatch_biasScaled.ckpt')
+    saver = tf.train.Saver()
+    with tf.Session() as sess:
+      self.init_assign_fn(sess)
+      for i in range(57):
+        input("Iteration %i" %i)
+        w = self.variables_to_restore[4*i]
+        #beta = self.variables_to_restore[4*i+1]
+        wei, sc1 = self.qnt(w)
+        #bet, sc2 = self.qnt(beta)
+        self.variables_to_restore[4*i].assign(wei).eval()
+        #self.variables_to_restore[4*i+1].assign(bet).eval()
+      save_path = saver.save(sess, '/mnt/d/Data/Inception/inception_v1_hardware.ckpt')
+    print("Model saved in path: %s" %save_path)
