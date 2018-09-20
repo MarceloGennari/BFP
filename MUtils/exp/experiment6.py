@@ -8,6 +8,7 @@ inf = InferenceEngine.InferenceEngine(arch="HW")
 g = tf.get_default_graph()
 print(g)
 gdef = g.as_graph_def()
+print(gdef)
 for node in gdef.node:
 	print(node.name)
 LOGDIR='/home/marcelo/'

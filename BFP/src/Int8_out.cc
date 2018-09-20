@@ -42,12 +42,49 @@ class Int8OutOp : public OpKernel{
 			Tensor* shift_tensor = NULL;
 			OP_REQUIRES_OK(context, context->allocate_output(0, input_tensor.shape(), &output_tensor));
 			OP_REQUIRES_OK(context, context->allocate_output(1, input_tensor.shape(), &shift_tensor));			
+			// This means that the inputs are the biases
+			if(shp.dims() == 1){
+				DCHECK_EQ(1, shp.dims());
+				auto shift_flat = shift_tensor->flat<int>();
+				auto output_flat = output_tensor->flat<float>();
+				auto input_flat = input_tensor.flat<float>();
+			
+				/*
+				* If Bias is bigger / smaller than capacity, then scale and return scaled version
+				* If Bias is not bigger / smaller than capacity, then simply return the Bias and 0
+				*/
 
-			auto shift_flat = shift_tensor->flat_inner_dims<int, 2>();
-			auto output_flat = output_tensor->flat_inner_dims<float, 2>();			
-			auto input_flat = input_tensor.flat_inner_dims<float, 2>();	
+				for(int k = 0; k<shp.dim_size(0); k++){
+					float biasAbs = std::abs(input_flat(k));
+					if(biasAbs < 127 && biasAbs > 1){
+						shift_flat(k) = 0;
+						float scale = 127;
+						q.set(0,7, scale, DistType::FixedPoint);
+						output_flat(k) = q.to_closest(input_flat(k));
+						continue;
+					}
+					
+					int scaling = (int) std::pow(2, std::ceil(std::log2(biasAbs)));
+					int sc1 = (int) std::ceil(std::log2(biasAbs));
+					int sc2 = sc1-7;
+					float scale = std::pow(2,sc1)-std::pow(2,sc2);
+					q.set(0,7,scale,DistType::FixedPoint);
+					shift_flat(k) = -sc2;
+					output_flat(k) = q.to_closest(input_flat(k));
+				}
+	
+				return;
+			}
+
+
 
 			DCHECK_EQ(4, shp.dims());
+			
+			// This means that the inputs are the weights
+			// The autos are Eigen Maps from Tensors
+			auto shift_flat = shift_tensor->flat_inner_dims<int, 2>();
+			auto output_flat = output_tensor->flat_inner_dims<float, 2>();	
+			auto input_flat = input_tensor.flat_inner_dims<float, 2>();	
 
 			if(shp.dims()==4){
 				int d0 = shp.dim_size(0);
@@ -61,13 +98,12 @@ class Int8OutOp : public OpKernel{
 				Eigen::Tensor<float, 4, 1> abs_tens = eigen_input_tensor.abs();
 				Eigen::Tensor<float, 1, 1> maximus = abs_tens.maximum(Eigen::array<int,3>({0,1,2}));
 				// After getting the maximum value of each Tensor, we have to map it to the nearest power of two				
-
 				for(int k = 0; k<d3; k++){
 					int scaling = (int) std::pow(2, std::ceil(std::log2(maximus(k))));
 					int sc1 = (int) std::ceil(std::log2(maximus(k)));
-					int sc2 = sc1-8;
+					int sc2 = sc1-7;
 					float scale = std::pow(2,sc1) - std::pow(2, sc2);
-					q.set(0, 8, scale, DistType::FixedPoint);
+					q.set(0, 7, scale, DistType::FixedPoint);
 					for(int j = 0; j< d0*d1*d2; j++){
 						shift_flat(j,k) = -sc2;
 						output_flat(j,k) = q.to_closest(input_flat(j,k));

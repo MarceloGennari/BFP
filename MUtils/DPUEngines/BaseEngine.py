@@ -11,8 +11,11 @@ slim = tf.contrib.slim
 class BaseEngine:
   is_set = False
 
-  def __init__(self):
-    self._set_up_inception_()
+  def __init__(self, setup_PB=None):
+    if setup_PB==None:
+    	self._set_up_inception_()
+    else:
+        self._set_up_(setup_PB)
 
   def _read_yaml_(self, path_to_yaml):
     stream = open(path_to_yaml, "r")
@@ -50,6 +53,13 @@ class BaseEngine:
     BaseEngine.predictions = self.predictions
     BaseEngine.variables_to_restore = self.variables_to_restore
     BaseEngine.is_set = True
+
+  def _set_up_pb_(self, set_up_pb_fil):
+    graph_def = tf.GraphDef()
+    with open('/mnt/d/Data/testgen/googlenet/googlenet/pb','rb') as f:
+      graph_def.ParseFromString(f.read())
+      graph = tf.import_graph_def(graph_def, [n.name for n in graph_def.node])
+      
 
   def __ret_incep_arch__(self, which='v1'):
     switcher={
