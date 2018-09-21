@@ -75,6 +75,16 @@ def save_to_disk(weight, bias, shift, fileName):
 	np.save(dirPath + 'b_' + fileName, np.array(bias*127, dtype=int))
 	np.save(dirPath + 's_' + fileName, np.array(np.ones(weight.shape[weight.ndim-1])*int(math.log2(shift)), dtype=int))
 
+def assign_to_checkpoint(weight, bias, shift_real_value, counter):
+	weight_index, bias_index = get_index(counter)
+	variables[weight_index].assign(weight/shift_real_value).eval()
+	variables[bias_index].assign(bias).eval()	
+
+def save_to_checkpoint():
+	saver = tf.train.Saver()
+	save_path = saver.save(sess, "./hardware_variables.ckpt")
+	print("Model saved in path: %s" % save_path)
+
 with tf.Session() as sess:
 	init_assign_fn(sess)
 	last_downstream_scale = 1
@@ -83,24 +93,31 @@ with tf.Session() as sess:
 		if names[k] in inception_blocks:
 			print("This the inception block: " + names[k])
 			per_op = {}
+			weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
+
 			for inblock_index in range(6):
 				weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
-				bias_scale = scale/shift_real_value
-				downstream_scale = last_downstream_scale * bias_scale
+				#bias_scale = scale/shift_real_value
+				#downstream_scale = last_downstream_scale * bias_scale
 				bias_scaled = bias*downstream_scale
-				
-				# Adjusting the bias
-				shift_real_value = scale_bias_to_1(np.amax(np.abs(bias_scaled)), shift_real_value)
-				bias_scale = scale/shift_real_value
-				downstream_scale = last_downstream_scale*bias_scale
-				bias_scaled = bias*downstream_scale
-
+				weight_index, bias_index = get_index(counter)
+			#	variables[bias_index].assign(bias_scaled).eval()
 				counter+=1
+				continue
+				# Adjusting the bias
+#				shift_real_value = scale_bias_to_1(np.amax(np.abs(bias_scaled)), shift_real_value)
+#				bias_scale = scale/shift_real_value
+#				downstream_scale = last_downstream_scale*bias_scale
+#				bias_scaled = bias*downstream_scale
+
+				assign_to_checkpoint(weight, bias_scaled, shift_real_value, counter)
+				
 				per_op.update({order[inblock_index]: {'scale': scale} })
 				per_op[order[inblock_index]]['shift'] = shift_real_value
 				per_op[order[inblock_index]]['bias_scale'] = downstream_scale
 				last_downstream_scale = downstream_scale
-				
+			
+	
 				# Adjusting for the fact that this 3x3 kernel should be a 5x5
 				if order[inblock_index] == '5':
 					tmp = np.zeros((5, 5, weight.shape[2], weight.shape[3]))
@@ -113,6 +130,7 @@ with tf.Session() as sess:
 				print("Shift Real Value: " + str(shift_real_value))
 				print("Downstream Scaling: " + str(downstream_scale))
 				print("Maximum of Bias Scaled: " + str(np.amax(np.abs(bias_scaled))))
+				counter+=1
 				fileName = names[k] + order[inblock_index]
 				save_to_disk(weight, bias_scaled, shift_real_value, fileName)	
 			print("")
@@ -124,10 +142,12 @@ with tf.Session() as sess:
 			bias_scaled = bias*downstream_scale
 			
 			# Adjusting the bias
-			shift_real_value = scale_bias_to_1(np.amax(np.abs(bias_scaled)), shift_real_value)
-			bias_scale = scale/shift_real_value
-			downstream_scale = last_downstream_scale*bias_scale
-			bias_scaled = bias*downstream_scale
+#			shift_real_value = scale_bias_to_1(np.amax(np.abs(bias_scaled)), shift_real_value)
+#			bias_scale = scale/shift_real_value
+#			downstream_scale = last_downstream_scale*bias_scale
+#			bias_scaled = bias*downstream_scale
+
+			assign_to_checkpoint(weight, bias_scaled, shift_real_value, counter)
 
 			# Adjusting for the fact that the last FC should be 1000 instead of 1001 classes
 			if names[k] == 'fc':
@@ -144,3 +164,5 @@ with tf.Session() as sess:
 			print("")
 			fileName = names[k]
 			save_to_disk(weight, bias_scaled, shift_real_value, fileName)
+
+	save_to_checkpoint()

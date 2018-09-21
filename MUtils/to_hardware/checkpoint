@@ -1,0 +1,2 @@
+model_checkpoint_path: "hardware_variables.ckpt"
+all_model_checkpoint_paths: "hardware_variables.ckpt"
