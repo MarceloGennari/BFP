@@ -29,6 +29,7 @@ order = ['3r', '5r', '1', '5', '3', 'pp'] # This is the branch orders in each in
 
 map_to_pb = [1, 3, 0, 4, 2, 5]
 inception_blocks = ['i3a', 'i3b', 'i4a', 'i4b','i4c','i4d', 'i4e', 'i5a', 'i5b']
+test_blocks = ['i3a', 'i3b', 'i4a']
 non_inception_blocks = ['conv1', 'conv2r', 'conv2', 'fc']
 
 inf = InferenceEngine.InferenceEngine()
@@ -90,20 +91,31 @@ with tf.Session() as sess:
 	last_downstream_scale = 1
 	counter = 0
 	for k in range(len(names)): # This is going to run to each "block" at a time
-		if names[k] in inception_blocks:
+		if names[k] in inception_blocks and names[k] in test_blocks:
 			print("This the inception block: " + names[k])
 			per_op = {}
-			weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
-
+			scales_of_block = np.array([])
+			down_scales_of_block = np.array([])
+			weights_of_block =[]
 			for inblock_index in range(6):
 				weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
-				#bias_scale = scale/shift_real_value
-				#downstream_scale = last_downstream_scale * bias_scale
+				weight = weight*shift_real_value/scale
+				
+				while np.amax(np.abs(weight)) > 127:
+					shift_real_value/=2
+					weight/=2				
+
+				bias_scale = shift_real_value/shift_real_value
+				downstream_scale = last_downstream_scale * bias_scale
 				bias_scaled = bias*downstream_scale
-				weight_index, bias_index = get_index(counter)
+				scales_of_block = np.append(scales_of_block, scale)
+				down_scales_of_block = np.append(down_scales_of_block, bias_scale)
+				weights_of_block.append(weight)
+
+			#	weight_index, bias_index = get_index(counter)
 			#	variables[bias_index].assign(bias_scaled).eval()
-				counter+=1
-				continue
+			#	counter+=1
+			#	continue
 				# Adjusting the bias
 #				shift_real_value = scale_bias_to_1(np.amax(np.abs(bias_scaled)), shift_real_value)
 #				bias_scale = scale/shift_real_value
@@ -116,8 +128,7 @@ with tf.Session() as sess:
 				per_op[order[inblock_index]]['shift'] = shift_real_value
 				per_op[order[inblock_index]]['bias_scale'] = downstream_scale
 				last_downstream_scale = downstream_scale
-			
-	
+				
 				# Adjusting for the fact that this 3x3 kernel should be a 5x5
 				if order[inblock_index] == '5':
 					tmp = np.zeros((5, 5, weight.shape[2], weight.shape[3]))
@@ -132,8 +143,12 @@ with tf.Session() as sess:
 				print("Maximum of Bias Scaled: " + str(np.amax(np.abs(bias_scaled))))
 				counter+=1
 				fileName = names[k] + order[inblock_index]
-				save_to_disk(weight, bias_scaled, shift_real_value, fileName)	
+				save_to_disk(weight, bias_scaled, shift_real_value, fileName)
+			print(scales_of_block)	
+			print(down_scales_of_block)
+
 			print("")
+
 		if names[k] in non_inception_blocks:
 			print("This is the non inception block: " + names[k])
 			weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
