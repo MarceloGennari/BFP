@@ -29,7 +29,7 @@ order = ['3r', '5r', '1', '5', '3', 'pp'] # This is the branch orders in each in
 
 map_to_pb = [1, 3, 0, 4, 2, 5]
 inception_blocks = ['i3a', 'i3b', 'i4a', 'i4b','i4c','i4d', 'i4e', 'i5a', 'i5b']
-test_blocks = ['i3a', 'i3b', 'i4a']
+test_blocks = inception_blocks #['i3a', 'i3b', 'i4a']
 non_inception_blocks = ['conv1', 'conv2r', 'conv2', 'fc']
 
 inf = InferenceEngine.InferenceEngine()
@@ -101,10 +101,10 @@ with tf.Session() as sess:
 				weight, bias, scale, shift_real_value = get_weights_bias_scale(counter)
 				weight = weight*shift_real_value/scale
 				
-				while np.amax(np.abs(weight)) > 127:
+				while np.amax(np.abs(weight))>127:
 					shift_real_value/=2
-					weight/=2				
-
+					weight/=2
+							
 				bias_scale = shift_real_value/shift_real_value
 				downstream_scale = last_downstream_scale * bias_scale
 				bias_scaled = bias*downstream_scale
